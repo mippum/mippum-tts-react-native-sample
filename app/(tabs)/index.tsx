@@ -4,6 +4,7 @@ import * as Speech from 'expo-speech';
 import { Platform, SafeAreaView } from 'react-native';
 import { StatusBar } from "expo-status-bar";
 import { Picker } from '@react-native-picker/picker';
+import wait from "waait";
 
 export default function HomeScreen() {
     const [text, setText] = useState<string>('Hello. This is TTS example.');
@@ -14,12 +15,19 @@ export default function HomeScreen() {
     useEffect(() => {
         const fetchVoices = async () => {
             const voices = await Speech.getAvailableVoicesAsync();
-            setAvailableVoices(voices);
-            if (voices.length > 0) {
-                setSelectedVoice(voices[0].identifier);  // 첫 번째 음성을 기본 선택
+            if(voices.length > 0) {
+                setAvailableVoices(voices);
+                setSelectedVoice(voices[0].identifier);
+            } else {
+                console.log('The voices are empty.');
+                await wait(100);
+                const voicesReloaded = await Speech.getAvailableVoicesAsync();
+                setAvailableVoices(voicesReloaded);
+                if (voicesReloaded.length > 0) {
+                    setSelectedVoice(voicesReloaded[0].identifier);
+                }
             }
         };
-
         fetchVoices().then();
     }, []);
 
