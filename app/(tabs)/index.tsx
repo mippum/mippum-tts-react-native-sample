@@ -1,12 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { View, Text, Button, TextInput, StyleSheet } from 'react-native';
 import * as Speech from 'expo-speech';
 import { Platform, SafeAreaView } from 'react-native';
 import { StatusBar } from "expo-status-bar";
+import { Picker } from '@react-native-picker/picker';
+import wait from "waait";
 
 export default function HomeScreen() {
     const [text, setText] = useState<string>('Hello. This is TTS example.');
     const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+    const [availableVoices, setAvailableVoices] = useState<Speech.Voice[]>([]);
+    const [selectedVoice, setSelectedVoice] = useState<string>('');
+
+    useEffect(() => {
+        const fetchVoices = async () => {
+            const voices = await Speech.getAvailableVoicesAsync();
+            if(voices.length > 0) {
+                setAvailableVoices(voices);
+                setSelectedVoice(voices[0].identifier);
+            } else {
+                console.log('The voices are empty.');
+                await wait(100);
+                const voicesReloaded = await Speech.getAvailableVoicesAsync();
+                setAvailableVoices(voicesReloaded);
+                if (voicesReloaded.length > 0) {
+                    setSelectedVoice(voicesReloaded[0].identifier);
+                }
+            }
+        };
+        fetchVoices().then();
+    }, []);
 
     const handleSpeak = () => {
         if (text.trim()) {
@@ -28,6 +51,10 @@ export default function HomeScreen() {
         setText(input);
     };
 
+    const handleVoiceChange = (voice: string) => {
+        setSelectedVoice(voice);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style={'dark'} />
@@ -40,6 +67,19 @@ export default function HomeScreen() {
                 value={text}
                 onChangeText={handleTextChange}
             />
+
+                <View style={styles.pickerContainer}>
+                    <Text style={styles.label}>Select Voice:</Text>
+                    <Picker
+                        selectedValue={selectedVoice}
+                        onValueChange={handleVoiceChange}
+                        style={styles.picker}
+                    >
+                        {availableVoices.map((voice) => (
+                            <Picker.Item key={voice.identifier} label={voice.name} value={voice.identifier} />
+                        ))}
+                    </Picker>
+                </View>
 
             <View style={styles.buttonContainer}>
                 <Button title="Speak" onPress={handleSpeak} disabled={isSpeaking} />
@@ -73,6 +113,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         marginBottom: 20,
         paddingLeft: 10,
+    },
+    label: {
+        fontSize: 16,
+        marginBottom: 10,
+    },
+    picker: {
+        height: 50,
+        width: '100%',
+    },
+    pickerContainer: {
+        width: '100%',
+        marginBottom: 20,
     },
     buttonContainer: {
         flexDirection: 'row',
